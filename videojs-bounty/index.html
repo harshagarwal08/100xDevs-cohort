@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- CSS -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.11.7/video-js.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/videojs-seek-buttons/dist/videojs-seek-buttons.css"
+      rel="stylesheet"
+    />
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.11.7/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-eme@3.8.0/dist/videojs-contrib-eme.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-seek-buttons/dist/videojs-seek-buttons.min.js"></script>
+
+    <!-- Title -->
+    <title>Test VideJS DRM</title>
+
+    <!-- Internal Styles -->
+    <style>
+      .video-js .vjs-play-progress {
+        background-color: #ff0000;
+      }
+
+      .vjs-menu .vjs-menu-content .vjs-menu-item {
+        text-transform: capitalize;
+        color: #fff;
+      }
+
+      .vjs-menu .vjs-menu-content .vjs-menu-item:hover {
+        background-color: rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+      }
+
+      .vjs-chapter-marker {
+        position: absolute;
+        height: 100%;
+        width: 2px;
+        z-index: 10;
+        background-color: rgba(43, 51, 63, 0.7);
+      }
+
+      .vjs-chapter-tooltip {
+        background-color: rgba(43, 51, 63, 0.7);
+        border-radius: 0.3em;
+        color: white;
+        float: right;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        padding: 4px;
+        gap: 2px;
+        flex-direction: column;
+        pointer-events: none;
+        position: absolute;
+        top: -3.4em;
+        display: none;
+        z-index: 1;
+        right: 0px;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Video Player -->
+    <div style="margin: 50px auto">
+      <video
+        id="my-video"
+        class="video-js"
+        tabindex="-1"
+        lang="en"
+        role="region"
+        aria-label="Video Player"
+      ></video>
+    </div>
+
+    <script>
+      // Function to initialize the player and set up functionalities
+      function initializePlayer() {
+        // Initialize Video.js player
+        var player = videojs(
+          "my-video",
+          {
+            controls: true,
+            fluid: true,
+            html5: {
+              vhs: {
+                overrideNative: true,
+              },
+            },
+          },
+          function () {
+            // Perform actions once the player is ready
+            player.ready(function () {
+              // Event listener for keystatuschange
+              player.tech(true).on("keystatuschange", function (event) {
+                console.log("event: ", event);
+              });
+
+              // Setting up player controls and functionalities
+              setupPlayerControls(player);
+              setupKeyboardShortcuts(player);
+              setupChapters(player);
+            });
+          }
+        );
+      }
+
+      // Function to set up player controls
+      function setupPlayerControls(player) {
+        player.eme();
+        player.src({
+          src: "https://cdn.bitmovin.com/content/assets/art-of-motion_drm/mpds/11331.mpd",
+          type: "application/dash+xml",
+          keySystems: {
+            "com.widevine.alpha":
+              "https://cwip-shaka-proxy.appspot.com/no_auth",
+          },
+        });
+        player.seekButtons({ forward: 5, back: 5 });
+      }
+
+      // Function to set up keyboard shortcuts
+      function setupKeyboardShortcuts(player) {
+        // Keyboard event listener
+        document.addEventListener("keydown", function (event) {
+          var arrowKeys = {
+            left: 37,
+            right: 39,
+            space: 32,
+            m: 77,
+            up: 38,
+            down: 40,
+            f: 70,
+          };
+
+          if (event.which === arrowKeys.left) {
+            // Move backward by 5 seconds
+            player.currentTime(player.currentTime() - 5);
+          } else if (event.which === arrowKeys.right) {
+            // Move forward by 5 seconds
+            player.currentTime(player.currentTime() + 5);
+          } else if (event.which === arrowKeys.space) {
+            // Toggle play/pause
+            if (player.paused()) {
+              player.play();
+            } else {
+              player.pause();
+            }
+          } else if (event.which === arrowKeys.m) {
+            // Toggle mute/unmute
+            player.muted(!player.muted());
+          } else if (event.which === arrowKeys.up) {
+            // Increase volume
+            var currentVolume = player.volume();
+            if (currentVolume < 1) {
+              player.volume(currentVolume + 0.1);
+            }
+          } else if (event.which === arrowKeys.down) {
+            // Decrease volume
+            var currentVolume = player.volume();
+            if (currentVolume > 0) {
+              player.volume(currentVolume - 0.1);
+            }
+          } else if (event.which === arrowKeys.f) {
+            // Toggle fullscreen
+            if (!document.fullscreenElement) {
+              player.requestFullscreen();
+            } else {
+              if (document.exitFullscreen) {
+                document.exitFullscreen();
+              }
+            }
+          }
+        });
+      }
+
+      // Function to set up chapters
+      function setupChapters(player) {
+        // Event listener for loadedmetadata
+        player.on("loadedmetadata", function () {
+          // Get the video duration
+          const videoDuration = player.duration();
+
+          // Define chapters with start time, end time, and text
+          const chapters = [
+            { startTime: 0, endTime: 45, text: "Introduction" },
+            { startTime: 46, endTime: 96, text: "Segment 1" },
+            { startTime: 97, endTime: 150, text: "Segment 2" },
+            { startTime: 151, endTime: 210, text: "Segment 3" },
+          ];
+
+          // Get the progress holder element
+          const progressHolder = document.querySelector(".vjs-progress-holder");
+
+          // Create chapter markers and append them to the progress holder
+          chapters.forEach((chapter) => {
+            // Calculate the start percentage of each chapter marker
+            const startPercentage = (chapter.startTime / videoDuration) * 100;
+
+            // Create a div element for the chapter marker
+            const chapterMarker = document.createElement("div");
+            chapterMarker.classList.add("vjs-chapter-marker");
+            chapterMarker.style.left = `${startPercentage}%`;
+
+            // Append the chapter marker to the progress holder
+            progressHolder.appendChild(chapterMarker);
+          });
+
+          // Show chapters menu
+          const chaptersButton = document.querySelector(".vjs-chapters-button");
+          if (chaptersButton) {
+            chaptersButton.classList.remove("vjs-hidden");
+          }
+
+          // Create chapters menu items and handle chapter selection
+          const chaptersMenu = document.querySelector(
+            ".vjs-chapters-button .vjs-menu .vjs-menu-content"
+          );
+          if (chaptersMenu) {
+            chapters.forEach((chapter) => {
+              // Create a list item for each chapter
+              const listItem = document.createElement("li");
+              listItem.textContent = chapter.text;
+              listItem.classList.add("vjs-menu-item");
+
+              // Add click event to seek to the chapter start time
+              listItem.addEventListener("click", () => {
+                player.currentTime(chapter.startTime);
+              });
+
+              // Append the chapter item to the chapters menu
+              chaptersMenu.appendChild(listItem);
+            });
+          }
+
+          // Show chapter tooltip on mouse hover
+          if (chapters.length > 0) {
+            const mouseDisplay = document.querySelector(".vjs-mouse-display");
+            const timeTooltip = document.querySelector(".vjs-time-tooltip");
+            const chapterTooltip = document.createElement("div");
+            chapterTooltip.classList.add("vjs-chapter-tooltip");
+            mouseDisplay.appendChild(chapterTooltip);
+
+            // Hide the default time tooltip
+            timeTooltip.style.display = "none";
+
+            // Function to show tooltip for the current time
+            function showTooltipForCurrentTime(currentTime) {
+              const currentChapter = chapters.find((chapter) => {
+                return (
+                  currentTime >= chapter.startTime &&
+                  currentTime <= chapter.endTime
+                );
+              });
+              if (currentChapter) {
+                const chapterTime = formatTime(currentTime);
+                chapterTooltip.innerHTML = `<div>${currentChapter.text}</div><div>${chapterTime}</div>`;
+                chapterTooltip.style.display = "flex";
+              } else {
+                chapterTooltip.style.display = "none";
+              }
+            }
+
+            // Event listener for mousemove on progress holder
+            progressHolder.addEventListener("mousemove", (event) => {
+              const mouseX =
+                event.clientX - progressHolder.getBoundingClientRect().left;
+              const currentTime =
+                (mouseX / progressHolder.offsetWidth) * videoDuration;
+              showTooltipForCurrentTime(currentTime);
+            });
+          }
+        });
+      }
+
+      // Function to format time in minutes and seconds
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+      }
+
+      // Initialize the player when the document is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        initializePlayer();
+      });
+    </script>
+  </body>
+</html>
