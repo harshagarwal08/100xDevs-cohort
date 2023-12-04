@@ -1,0 +1,3 @@
+[submodule "assignments"]
+	path = assignments
+	url = https://github.com/harshagarwal08/assignments.git
