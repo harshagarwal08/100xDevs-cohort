@@ -1,3 +1,0 @@
-mongodb+srv://admin:8O6uszwYHYSzYQOu@cluster0.6j9l6e1.mongodb.net/
-
-postgresql://harshagarwal08:pK79SOVIJtAl@ep-wild-glade-30484124.ap-southeast-1.aws.neon.tech/harshdb?sslmode=require
